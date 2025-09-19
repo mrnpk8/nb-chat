@@ -63,7 +63,7 @@ services:
       NEXT_AUTH_SSO_PROVIDERS: "google"
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
-
+      ALLOW_GUEST_LOGIN: false
     ports:
       - "${LOBE_PORT:-3210}:3210"
     restart: unless-stopped
