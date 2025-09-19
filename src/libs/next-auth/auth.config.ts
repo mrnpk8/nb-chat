@@ -32,6 +32,13 @@ export const initSSOProviders = () => {
 export default {
   adapter: NEXT_PUBLIC_ENABLED_SERVER_SERVICE ? LobeNextAuthDbAdapter() : undefined,
   callbacks: {
+    async signIn({ user, account }) {
+      // Блокируем всех, кроме Google
+      if (!account || account.provider !== 'google') {
+        return false;
+      }
+      return true;
+    },
     // Note: Data processing order of callback: authorize --> jwt --> session
     async jwt({ token, user }) {
       // ref: https://authjs.dev/guides/extending-the-session#with-jwt
