@@ -11,9 +11,9 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
     ports:
       - "5432:5432"
-    restart: unless-stopped
 
   # ---------- MinIO ----------
   minio:
@@ -25,10 +25,10 @@ services:
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     volumes:
       - minio_data:/data
-    ports:
-      - "${MINIO_PORT:-9000}:9000"      # MinIO API
-      - "9001:9001"                     # MinIO Console
     restart: unless-stopped
+    ports:
+      - "9000:9000"  # MinIO API
+      - "9001:9001"  # MinIO Console
 
   # ---------- LobeChat ----------
   lobe:
@@ -38,22 +38,32 @@ services:
       - postgres
       - minio
     environment:
+      # Основное
       APP_URL: ${APP_URL}
       NEXTAUTH_URL: ${NEXTAUTH_URL}
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+      KEY_VAULTS_SECRET: ${KEY_VAULTS_SECRET}
+
+      # База данных
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD}@postgres:5432/${LOBE_DB_NAME}
+
+      # S3 / MinIO
       S3_ACCESS_KEY_ID: ${MINIO_ROOT_USER}
       S3_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD}
       S3_ENDPOINT: http://minio:9000
       S3_PUBLIC_DOMAIN: ${S3_PUBLIC_DOMAIN}
       S3_ENABLE_PATH_STYLE: 1
+      MINIO_LOBE_BUCKET: ${MINIO_LOBE_BUCKET}
+
+      # OpenRouter LLM
       PROVIDER: openrouter
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
-      KEY_VAULTS_SECRET: ${KEY_VAULTS_SECRET}
-      # OAuth через Google/GitHub
+
+      # OAuth
       NEXT_AUTH_SSO_PROVIDERS: "google"
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+
     ports:
       - "${LOBE_PORT:-3210}:3210"
     restart: unless-stopped
