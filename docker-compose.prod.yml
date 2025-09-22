@@ -27,8 +27,23 @@ services:
       - minio_data:/data
     restart: unless-stopped
     ports:
-      - "9000:9000"  # MinIO API
-      - "9001:9001"  # MinIO Console
+      - "9000:9000"
+      - "9001:9001"
+
+  # ---------- Casdoor ----------
+  casdoor:
+    image: casbin/casdoor:latest
+    container_name: lobe-casdoor
+    environment:
+      RUNNING_IN_DOCKER: "true"
+      DRIVER_NAME: "postgres"
+      DATA_SOURCE_NAME: "host=postgres user=${POSTGRES_USER:-postgres} password=${POSTGRES_PASSWORD} dbname=${LOBE_DB_NAME} sslmode=disable"
+      CASDOOR_PORT: 8000
+    depends_on:
+      - postgres
+    ports:
+      - "8000:8000"
+    restart: unless-stopped
 
   # ---------- LobeChat ----------
   lobe:
@@ -37,6 +52,7 @@ services:
     depends_on:
       - postgres
       - minio
+      - casdoor
     environment:
       # Основное
       APP_URL: ${APP_URL}
@@ -59,10 +75,13 @@ services:
       PROVIDER: openrouter
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
 
-      # OAuth
-      NEXT_AUTH_SSO_PROVIDERS: "google"
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
-      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      # OAuth (только Casdoor)
+      NEXT_AUTH_SSO_PROVIDERS: "oidc"
+      OIDC_NAME: casdoor
+      OIDC_ISSUER: ${CASDOOR_ENDPOINT}
+      OIDC_CLIENT_ID: ${CASDOOR_CLIENT_ID}
+      OIDC_CLIENT_SECRET: ${CASDOOR_CLIENT_SECRET}
+      OIDC_SCOPE: "openid profile email"
       ALLOW_GUEST_LOGIN: false
     ports:
       - "${LOBE_PORT:-3210}:3210"
