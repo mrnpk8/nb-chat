@@ -6,9 +6,9 @@ services:
     image: pgvector/pgvector:pg17
     container_name: lobe-postgres
     environment:
+      POSTGRES_DB: ${LOBE_DB_NAME:-lobechat}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${LOBE_DB_NAME:-lobechat}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
@@ -47,7 +47,7 @@ services:
       RUNNING_IN_DOCKER: 'true'
       driverName: 'postgres'
       dataSourceName: "user=${POSTGRES_USER} password=${POSTGRES_PASSWORD} host=postgres port=5432 sslmode=disable dbname=casdoor"
-      runmode: 'dev'
+      runmode: 'prod'
       httpport: 8000
       APP_URL: ${CASDOOR_APP_URL}
     volumes:
@@ -58,7 +58,9 @@ services:
 
   # ---------- LobeChat ----------
   lobe:
-    image: lobehub/lobe-chat:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: lobe-chat
     depends_on:
       - postgres
@@ -94,9 +96,6 @@ services:
       CASDOOR_CLIENT_SECRET: ${CASDOOR_CLIENT_SECRET}
       CASDOOR_ORG: ${CASDOOR_ORG}
       CASDOOR_APP: ${CASDOOR_APP}
-      AUTH_CASDOOR_ID: ${CASDOOR_CLIENT_ID}
-      AUTH_CASDOOR_SECRET: ${CASDOOR_CLIENT_SECRET}
-      AUTH_CASDOOR_ISSUER: ${CASDOOR_APP_URL}
       ALLOW_GUEST_LOGIN: false
     ports:
       - "${LOBE_PORT:-3210}:3210"
