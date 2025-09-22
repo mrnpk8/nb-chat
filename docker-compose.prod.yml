@@ -6,7 +6,6 @@ services:
     image: pgvector/pgvector:pg17
     container_name: lobe-postgres
     environment:
-      POSTGRES_DB: ${LOBE_DB_NAME}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
@@ -33,17 +32,21 @@ services:
   # ---------- Casdoor ----------
   casdoor:
     image: casbin/casdoor:latest
-    container_name: lobe-casdoor
-    environment:
-      RUNNING_IN_DOCKER: "true"
-      DRIVER_NAME: "postgres"
-      DATA_SOURCE_NAME: "host=postgres user=${POSTGRES_USER:-postgres} password=${POSTGRES_PASSWORD} dbname=${LOBE_DB_NAME} sslmode=disable"
-      CASDOOR_PORT: 8000
+    container_name: casdoor
     depends_on:
       - postgres
+    environment:
+      driver: postgres
+      dataSourceName: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/casdoor?sslmode=disable"
+      runmode: dev
+      appname: casdoor
+      httpport: 8000
+      APP_URL: ${CASDOOR_APP_URL}
+    volumes:
+      - casdoor_data:/data
+    restart: unless-stopped
     ports:
       - "8001:8000"
-    restart: unless-stopped
 
   # ---------- LobeChat ----------
   lobe:
@@ -75,13 +78,12 @@ services:
       PROVIDER: openrouter
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
 
-      # OAuth (только Casdoor)
-      NEXT_AUTH_SSO_PROVIDERS: "oidc"
-      OIDC_NAME: casdoor
-      OIDC_ISSUER: ${CASDOOR_ENDPOINT}
-      OIDC_CLIENT_ID: ${CASDOOR_CLIENT_ID}
-      OIDC_CLIENT_SECRET: ${CASDOOR_CLIENT_SECRET}
-      OIDC_SCOPE: "openid profile email"
+      # Casdoor OAuth
+      NEXT_AUTH_SSO_PROVIDERS: "casdoor"
+      CASDOOR_ENDPOINT: ${CASDOOR_APP_URL}
+      CASDOOR_CLIENT_ID: ${CASDOOR_CLIENT_ID}
+      CASDOOR_CLIENT_SECRET: ${CASDOOR_CLIENT_SECRET}
+      CASDOOR_CERT_PUBLIC_KEY: ${CASDOOR_CERT_PUBLIC_KEY}
       ALLOW_GUEST_LOGIN: false
     ports:
       - "${LOBE_PORT:-3210}:3210"
@@ -90,3 +92,4 @@ services:
 volumes:
   postgres_data:
   minio_data:
+  casdoor_data:
